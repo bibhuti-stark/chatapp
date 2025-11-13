@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Rooms</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e5ddd5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      background: #fff;
+      width: 400px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: #075E54;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: #ECE5DD;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .msg {
+      margin: 6px 0;
+      padding: 8px 12px;
+      border-radius: 15px;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    .msg.user { background: #DCF8C6; align-self: flex-end; }
+    .msg.other { background: #fff; align-self: flex-start; }
+    .msg.system { background: #d3d3d3; align-self: center; font-style: italic; }
+
+    .input-area {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+      font-size: 15px;
+    }
+
+    button {
+      background: #128C7E;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #075E54; }
+
+    #joinSection { padding: 20px; text-align: center; }
+    #joinSection input { margin: 5px; padding: 8px; width: 80%; }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="header">Chat Rooms</div>
+
+  <div id="joinSection">
+    <input id="nameInput" placeholder="Enter your name" /><br>
+    <input id="roomInput" placeholder="Enter room name" /><br>
+    <button id="joinBtn">Join Room</button>
+  </div>
+
+  <div id="chatSection" style="display:none;">
+    <div class="messages" id="messages"></div>
+
+    <div class="input-area">
+      <input id="m" type="text" placeholder="Type message..." autocomplete="off">
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const joinBtn = document.getElementById("joinBtn");
+  const nameInput = document.getElementById("nameInput");
+  const roomInput = document.getElementById("roomInput");
+  const chatSection = document.getElementById("chatSection");
+  const joinSection = document.getElementById("joinSection");
+  const messagesDiv = document.getElementById("messages");
+  const sendBtn = document.getElementById("sendBtn");
+  const messageInput = document.getElementById("m");
+
+  let currentUser = "";
+  let currentRoom = "";
+
+  joinBtn.onclick = () => {
+    if (nameInput.value.trim() && roomInput.value.trim()) {
+      currentUser = nameInput.value;
+      currentRoom = roomInput.value;
+
+      joinSection.style.display = "none";
+      chatSection.style.display = "block";
+
+      socket.emit("joinRoom", { name: currentUser, room: currentRoom });
+    }
+  };
+
+  sendBtn.onclick = () => {
+    if (messageInput.value.trim()) {
+      const msg = { name: currentUser, text: messageInput.value, room: currentRoom };
+      socket.emit("chat", msg);
+      appendMessage(msg, true);
+      messageInput.value = "";
+    }
+  };
+
+  socket.on("chat", (msg) => {
+    if (msg.name === "System") appendMessage(msg, false, true);
+    else if (msg.name !== currentUser) appendMessage(msg, false);
+  });
+
+  socket.on("history", (msgs) => {
+    msgs.forEach(m => appendMessage(m, m.name === currentUser));
+  });
+
+  function appendMessage(msg, isUser, isSystem = false) {
+    const div = document.createElement("div");
+    div.classList.add("msg");
+    if (isSystem) div.classList.add("system");
+    else div.classList.add(isUser ? "user" : "other");
+
+    div.textContent = isSystem ? msg.text : `${msg.name}: ${msg.text}`;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
