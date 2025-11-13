@@ -10,7 +10,7 @@ const io = new Server(server);
 app.use(express.static("public"));
 
 // ✅ MongoDB connection
-mongoose.connect("mongodb+srv://bibhuti3005_db_user:<vjj2U40jXp2wklMO>@cluster0.gppqi5o.mongodb.net//chatapp")
+mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.log("❌ MongoDB error:", err));
 
